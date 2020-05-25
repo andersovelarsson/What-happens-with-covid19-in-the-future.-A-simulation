@@ -53,10 +53,10 @@ class SirModel:
 
 #    https://www.medrxiv.org/content/10.1101/2020.04.15.20066050v1.full.pdf
 
-    def __init__(self, Ro = 2.5, k12=0.325, k13=0.00011, So = 1E7, dateStart = '2020-01-22', plotDateRanfe = ['2020-03-01','2020-06-01']):
+    def __init__(self, Ro = 2.5, k12=0.325, k13=0.00011, So = 1E7, dateStart = '2020-01-22', plotDateRange = ['2020-03-01','2020-06-01']):
         self.startDate = datetime.datetime.strptime(dateStart, '%Y-%m-%d')  
-        self.plotStartDate = datetime.datetime.strptime(plotDateRanfe[0], '%Y-%m-%d') #datetime.date(2020,3,1)
-        self.plotEndDate   = datetime.datetime.strptime(plotDateRanfe[1], '%Y-%m-%d') #datetime.date(2020,6,1)
+        self.plotStartDate = datetime.datetime.strptime(plotDateRange[0], '%Y-%m-%d') #datetime.date(2020,3,1)
+        self.plotEndDate   = datetime.datetime.strptime(plotDateRange[1], '%Y-%m-%d') #datetime.date(2020,6,1)
         self.So        = So
         self.Io        = 1
         self.k12       = self.interp(k12)
@@ -114,7 +114,7 @@ class SirModel:
         return simResult
 
     def plot(self,t, simResult):
-        plt.figure(0)  # ,figsize=(15,15)
+        plt.figure(0,figsize=(15,15))
         x, y = (4, 3)
         plt.subplot(x,y,1)
         plt.plot( simResult['Susceptibles'] )
@@ -231,4 +231,4 @@ class SirModel:
 
 
 Ro = {'2020-01-01': 2.4 ,'2020-03-15': 1.6 , '2020-04-03': 1.13, '2020-08-01':1.7}
-sirm = SirModel(Ro = Ro, k12=0.325*0.95, k13=0.00023*2.2, So = 10E6, dateStart = '2020-02-24', plotDateRanfe = ['2020-03-01','2021-02-01'])
+sirm = SirModel(Ro = Ro, k12=0.325*0.95, k13=0.00023*2.2, So = 10E6, dateStart = '2020-02-24', plotDateRange = ['2020-03-01','2021-02-01'])
