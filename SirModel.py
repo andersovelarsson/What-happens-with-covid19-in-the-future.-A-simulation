@@ -195,7 +195,7 @@ class SirModel:
         plt.plot(simResult['Death'])
         plt.plot(fhm.data.Antal_avlidna.cumsum())
         plt.title('Döda')
-        plt.xlabel('Dagar')
+        plt.xlabel('Dag')
         plt.ylabel('Antal')
         plt.legend(['Sim','FHM'])
         plt.xlim([self.plotStartDate ,self.plotEndDate])
@@ -207,7 +207,7 @@ class SirModel:
         plt.plot(fhm.data.Antal_avlidna.cumsum())
         plt.yscale('log')
         plt.title('Döda')
-        plt.xlabel('Dagar')
+        plt.xlabel('Dag')
         plt.ylabel('Antal')
         plt.ylim(1)
         plt.gcf().autofmt_xdate()
@@ -217,7 +217,7 @@ class SirModel:
         plt.plot(simResult['Death'].diff())
         plt.plot(fhm.data.Antal_avlidna)
         plt.title('Döda')
-        plt.xlabel('Dagar')
+        plt.xlabel('Dag')
         plt.ylabel('Antal per dag')
         plt.xlim([self.plotStartDate ,self.plotEndDate])
         plt.grid(True)
@@ -230,6 +230,6 @@ class SirModel:
         plt.show()
 
 if __name__ == "__main__":
-    Ro = {'2020-01-01': 2.4 ,'2020-03-15': 1.6 , '2020-04-03': 1.13, '2020-08-01':1.7}
+    Ro = {'2020-01-01': 2.4 ,'2020-03-15': 1.6 , '2020-04-03': 1.13, '2020-08-01':1.2}
     sirm = SirModel(Ro = Ro, k12=0.325*0.95, k13=0.00023*2.2, So = 10E6, dateStart = '2020-02-24', plotDateRange = ['2020-03-01','2021-02-01'])
 
