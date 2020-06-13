@@ -54,20 +54,22 @@ class SirModel:
 #    https://www.medrxiv.org/content/10.1101/2020.04.15.20066050v1.full.pdf
 
     def __init__(self, Ro = 2.5, k12=0.325, k13=0.00011, So = 1E7, dateStart = '2020-01-22', plotDateRange = ['2020-03-01','2020-06-01']):
-        self.startDate = datetime.datetime.strptime(dateStart, '%Y-%m-%d')  
+        self.FHMData       = FHMData()
+        self.startDate     = datetime.datetime.strptime(dateStart, '%Y-%m-%d')  
         self.plotStartDate = datetime.datetime.strptime(plotDateRange[0], '%Y-%m-%d')
         self.plotEndDate   = datetime.datetime.strptime(plotDateRange[1], '%Y-%m-%d')
-        self.So        = So
-        self.Io        = 1
-        self.No        = self.So + self.Io                     # Initial population
-        self.k12       = self.interp(k12)
-        self.k01       = self.calcK01(Ro)        
-        self.k13       = self.interp(k13)
+        self.So            = So
+        self.Io            = 1
+        self.No            = self.So + self.Io                     # Initial population
+        self.k12           = self.interp(k12)
+        self.k01           = self.calcK01(Ro)        
+        self.k13           = self.interp(k13)
 
         #self.Ro        = self.k01(0) * So / k12
         self.dti       = pd.date_range(dateStart, periods=(self.plotEndDate - self.startDate).days, freq='D')
         self.t         =  (self.dti-self.dti.min()).astype('timedelta64[D]').astype(int)
-        self.simResult     = self.solve()
+        self.simResult = self.solve()
+
 
         #plt.plot(self.k01(self.dti) / k12(self.dti) * self.simResult['Susceptibles'])
         #plt.show()
@@ -175,7 +177,7 @@ class SirModel:
         plt.plot(simResult['Recovered'])
         plt.yscale('log')
         plt.title('Recovered (Sw: Friska immuna)')
-        plt.ylabel('Antal')
+        plt.ylabel('Number of people')
         plt.gca().axes.get_xaxis().set_major_formatter(plt.NullFormatter())
         plt.ylim((1))
         plt.grid(True)
@@ -183,15 +185,15 @@ class SirModel:
         plt.subplot(x,y,9)
         plt.plot(simResult['Recovered'].diff())
         plt.title('Recovered (Sw: Friska immuna)')
-        plt.ylabel('Antal per dag')
+        plt.ylabel('Number per day')
         plt.xlim(plt.xlim([self.plotStartDate ,self.plotEndDate]))
         plt.gca().axes.get_xaxis().set_major_formatter(plt.NullFormatter())
         plt.grid(True)
 
-        fhm = FHMData()
+        
         plt.subplot(x,y,10)
         plt.plot(simResult['Death'] / self.So * 1E6)
-        plt.plot(fhm.data.Antal_avlidna.cumsum() / self.So * 1E6)
+        plt.plot(self.FHMData.data.Antal_avlidna.cumsum() / self.So * 1E6)
         plt.title('Cumulative deaths per million people')
         #plt.xlabel('Dag')
         plt.ylabel('Deaths per million')
@@ -202,7 +204,7 @@ class SirModel:
 
         plt.subplot(x,y,11)
         plt.plot(simResult['Death'])
-        plt.plot(fhm.data.Antal_avlidna.cumsum())
+        plt.plot(self.FHMData.data.Antal_avlidna.cumsum())
         plt.yscale('log')
         plt.title('Deaths')
         plt.ylabel('Number of deaths')
@@ -212,7 +214,7 @@ class SirModel:
 
         plt.subplot(x,y,12)
         plt.plot(simResult['Death'].diff())
-        plt.plot(fhm.data.Antal_avlidna)
+        plt.plot(self.FHMData.data.Antal_avlidna)
         plt.title('Death')
         #plt.xlabel('Dag')
         plt.ylabel('Daily deaths')
