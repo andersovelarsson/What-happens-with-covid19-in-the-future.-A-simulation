@@ -55,17 +55,16 @@ class SirModel:
 
     def __init__(self, Ro = 2.5, k12=0.325, k13=0.00011, So = 1E7, dateStart = '2020-01-22', plotDateRange = ['2020-03-01','2020-06-01']):
         self.startDate = datetime.datetime.strptime(dateStart, '%Y-%m-%d')  
-        self.plotStartDate = datetime.datetime.strptime(plotDateRange[0], '%Y-%m-%d') #datetime.date(2020,3,1)
-        self.plotEndDate   = datetime.datetime.strptime(plotDateRange[1], '%Y-%m-%d') #datetime.date(2020,6,1)
+        self.plotStartDate = datetime.datetime.strptime(plotDateRange[0], '%Y-%m-%d')
+        self.plotEndDate   = datetime.datetime.strptime(plotDateRange[1], '%Y-%m-%d')
         self.So        = So
         self.Io        = 1
+        self.No        = self.So + self.Io                     # Initial population
         self.k12       = self.interp(k12)
-        self.k01       = self.calcK01(Ro)
-        #self.k01       = self.interp(k01 / So)        # k01=0.52,
-        
+        self.k01       = self.calcK01(Ro)        
         self.k13       = self.interp(k13)
 
-        self.Ro        = self.k01(0) * So / k12
+        #self.Ro        = self.k01(0) * So / k12
         self.dti       = pd.date_range(dateStart, periods=(self.plotEndDate - self.startDate).days, freq='D')
         self.t         =  (self.dti-self.dti.min()).astype('timedelta64[D]').astype(int)
         self.simResult     = self.solve()
@@ -84,16 +83,14 @@ class SirModel:
         if isinstance(Ro,dict):
             t , y = [], []
             for key in Ro:
-                date = datetime.datetime.strptime(key, '%Y-%m-%d')
+                date  = datetime.datetime.strptime(key, '%Y-%m-%d')
                 delta = date.date() - self.startDate.date()
                 t.append(delta.days)
                 y.append((Ro[key]) / self.So * self.k12(delta.days)) 
             return interpolate.interp1d(t,y, bounds_error=False, fill_value=(y[0],y[-1]),kind='previous')
         else:
             k = Ro / self.So * self.k12(0)
-            return interpolate.interp1d([0 , 1],[k,k], bounds_error=False, fill_value=(k,k))
-
-            
+            return interpolate.interp1d([0 , 1],[k,k], bounds_error=False, fill_value=(k,k))      
 
     @staticmethod
     def f(x, t, k01, k12, k13):
@@ -111,39 +108,40 @@ class SirModel:
         simResult['Infected']     = pd.Series(s[:,1], self.dti)
         simResult['Recovered']    = pd.Series(s[:,2], self.dti)
         simResult['Death']        = pd.Series(s[:,3], self.dti)
+        simResult['Population']   = self.No - simResult['Death']
         return simResult
 
     def plot(self,t, simResult):
         plt.figure(0,figsize=(15,15))
         x, y = (4, 3)
         plt.subplot(x,y,1)
-        plt.plot( simResult['Susceptibles'] )
-        plt.title(f'Friska (Ro: {self.Ro:5.2f})')
-        plt.ylabel('Antal')
+        plt.plot( simResult['Susceptibles'] / simResult['Population'] * 100.0 )
+        plt.title(f'Susceptibles')
+        plt.ylabel('Part of population [%]')
         plt.xlim(plt.xlim([self.plotStartDate ,self.plotEndDate]))
         plt.gca().axes.get_xaxis().set_major_formatter(plt.NullFormatter())
         plt.grid(True)
 
         plt.subplot(x,y,2)
-        plt.plot( simResult['Susceptibles'] )
+        plt.plot( simResult['Susceptibles'])
         plt.yscale('log')
-        plt.title('Friska')
-        plt.ylabel('Antal')
+        plt.title('Susceptibles')
+        plt.ylabel('Number of people')
         plt.gca().axes.get_xaxis().set_major_formatter(plt.NullFormatter())
         plt.grid(True)
         
         plt.subplot(x,y,3)
         plt.plot( simResult['Susceptibles'].diff() )
-        plt.title('Friska')
-        plt.ylabel('Antal per dag')
+        plt.title('Susceptibles')
+        plt.ylabel('Number per day')
         plt.xlim(plt.xlim([self.plotStartDate ,self.plotEndDate]))
         plt.gca().axes.get_xaxis().set_major_formatter(plt.NullFormatter())
         plt.grid(True)
 
         plt.subplot(x,y,4)
-        plt.plot(simResult['Infected'])
-        plt.title('Sjuka')
-        plt.ylabel('Antal')
+        plt.plot(simResult['Infected'] / simResult['Population'] * 100.0 )
+        plt.title('Infected')
+        plt.ylabel('Part of population [%]')
         plt.xlim(plt.xlim([self.plotStartDate ,self.plotEndDate]))
         plt.gca().axes.get_xaxis().set_major_formatter(plt.NullFormatter())
         plt.grid(True)
@@ -151,24 +149,24 @@ class SirModel:
         plt.subplot(x,y,5)
         plt.plot(simResult['Infected'])
         plt.yscale('log')
-        plt.title('Sjuka')
-        plt.ylabel('Antal')
+        plt.title('Infected')
+        plt.ylabel('Number of people')
         plt.gca().axes.get_xaxis().set_major_formatter(plt.NullFormatter())
         plt.ylim((1))
         plt.grid(True)
 
         plt.subplot(x,y,6)
         plt.plot(simResult['Infected'].diff())
-        plt.title('Sjuka')
-        plt.ylabel('Antal per dag')
+        plt.title('Infected')
+        plt.ylabel('Number per day')
         plt.xlim(plt.xlim([self.plotStartDate ,self.plotEndDate]))
         plt.gca().axes.get_xaxis().set_major_formatter(plt.NullFormatter())
         plt.grid(True)
 
         plt.subplot(x,y,7)
-        plt.plot(simResult['Recovered'])
-        plt.title('Friska immuna')
-        plt.ylabel('Antal')
+        plt.plot(simResult['Recovered'] / simResult['Population'] * 100.0)
+        plt.title('Recovered')
+        plt.ylabel('Part of population [%]')
         plt.xlim(plt.xlim([self.plotStartDate ,self.plotEndDate]))
         plt.gca().axes.get_xaxis().set_major_formatter(plt.NullFormatter())
         plt.grid(True)
@@ -176,7 +174,7 @@ class SirModel:
         plt.subplot(x,y,8)
         plt.plot(simResult['Recovered'])
         plt.yscale('log')
-        plt.title('Friska immuna')
+        plt.title('Recovered (Sw: Friska immuna)')
         plt.ylabel('Antal')
         plt.gca().axes.get_xaxis().set_major_formatter(plt.NullFormatter())
         plt.ylim((1))
@@ -184,7 +182,7 @@ class SirModel:
         
         plt.subplot(x,y,9)
         plt.plot(simResult['Recovered'].diff())
-        plt.title('Friska immuna')
+        plt.title('Recovered (Sw: Friska immuna)')
         plt.ylabel('Antal per dag')
         plt.xlim(plt.xlim([self.plotStartDate ,self.plotEndDate]))
         plt.gca().axes.get_xaxis().set_major_formatter(plt.NullFormatter())
@@ -192,12 +190,12 @@ class SirModel:
 
         fhm = FHMData()
         plt.subplot(x,y,10)
-        plt.plot(simResult['Death'])
-        plt.plot(fhm.data.Antal_avlidna.cumsum())
-        plt.title('Döda')
-        plt.xlabel('Dag')
-        plt.ylabel('Antal')
-        plt.legend(['Sim','FHM'])
+        plt.plot(simResult['Death'] / self.So * 1E6)
+        plt.plot(fhm.data.Antal_avlidna.cumsum() / self.So * 1E6)
+        plt.title('Cumulative deaths per million people')
+        #plt.xlabel('Dag')
+        plt.ylabel('Deaths per million')
+        plt.legend(['Simulation','FHM Sweden'])
         plt.xlim([self.plotStartDate ,self.plotEndDate])
         plt.gcf().autofmt_xdate()
         plt.grid(True)
@@ -206,9 +204,8 @@ class SirModel:
         plt.plot(simResult['Death'])
         plt.plot(fhm.data.Antal_avlidna.cumsum())
         plt.yscale('log')
-        plt.title('Döda')
-        plt.xlabel('Dag')
-        plt.ylabel('Antal')
+        plt.title('Deaths')
+        plt.ylabel('Number of deaths')
         plt.ylim(1)
         plt.gcf().autofmt_xdate()
         plt.grid(True)
@@ -216,9 +213,9 @@ class SirModel:
         plt.subplot(x,y,12)
         plt.plot(simResult['Death'].diff())
         plt.plot(fhm.data.Antal_avlidna)
-        plt.title('Döda')
-        plt.xlabel('Dag')
-        plt.ylabel('Antal per dag')
+        plt.title('Death')
+        #plt.xlabel('Dag')
+        plt.ylabel('Daily deaths')
         plt.xlim([self.plotStartDate ,self.plotEndDate])
         plt.grid(True)
         plt.gcf().autofmt_xdate()
@@ -230,6 +227,6 @@ class SirModel:
         plt.show()
 
 if __name__ == "__main__":
-    Ro = {'2020-01-01': 2.4 ,'2020-03-15': 1.6 , '2020-04-03': 1.14, '2020-08-01':1.2}
+    Ro = {'2020-01-01': 2.4 ,'2020-03-16': 1.6 , '2020-04-02': 1.1, '2020-04-24': 1.21, '2020-05-17': 1.26, '2020-08-15':2}
     sirm = SirModel(Ro = Ro, k12=0.3087, k13=0.000506, So = 10E6, dateStart = '2020-02-24', plotDateRange = ['2020-03-01','2021-02-01'])
 
