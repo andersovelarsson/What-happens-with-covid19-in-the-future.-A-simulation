@@ -3,13 +3,7 @@
 
 ## S - I - R - D model
 
-Susceptibles   S(t)
-
-Infected       I(t)
-
-Recovered      R(t)  
-
-Death          D(t)
+Susceptibles S(t), Infected I(t), Recovered R(t) and Death D(t)
 
 Population N(t) = S(t) +  I(t) + R(t) - D(t)
 
@@ -30,7 +24,7 @@ dR/dt =  k12 * I                           (2)
 
 dD/dt =  k13 * I                           (3)
 
-Det den matamatiska modellen säger är att Covid-19 pandemin troligen handlar om dig och mig och hur uthålliga vi kan vara. Frågan är om det kommer en andra och tredje våg av epedemin. Modellen kan inte svara exakt på denna fråga, men modellen visar kopplingen mellan vårat betende och utfall. Svaret på frågan verkar bero på om vi går tillbaka och lever som vi gjorde innan (Ro = 2.5) pandemin då kommer andra vågen troligen bli mycket starakre än första vågen, kanske 2-3 gånger starkare. Forsätter vi leva som vi gör nu (början av juni 2020, Ro < 1.4) då kommer troligen ingen andra våg, men vi kommer att behöva vara uthålliga. Troligen kommer vi behöva hålla ut till vi har ett vacsin. 
+Det den matamatiska modellen säger är att Covid-19 pandemin troligen handlar om dig och mig och hur uthålliga vi kan vara. Frågan är om det kommer en andra och tredje våg av epedemin. Modellen kan inte svara exakt på denna fråga, men modellen visar kopplingen mellan vårat betende och utfall. Svaret på frågan verkar bero på om vi går tillbaka och lever som vi gjorde innan (Ro = 2.4) pandemin då kommer andra vågen troligen bli mycket starakre än första vågen, kanske 2-3 gånger starkare. Forsätter vi leva som vi gör nu (början av juni 2020, Ro < 1.4) då kommer troligen ingen andra våg, men vi kommer att behöva vara uthålliga. Troligen kommer vi behöva hålla ut till vi har ett vacsin. 
 
 ![Sim1](/Doc/SimulationResult.png)
 
