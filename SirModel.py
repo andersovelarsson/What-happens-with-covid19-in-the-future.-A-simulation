@@ -20,7 +20,7 @@ class FHMData:
 
 class SirModel:
 #
-#    S - I - R model
+#    S - I - R -model
 #
 #    Susceptibles   S(t)
 #    Infected       I(t)
@@ -126,7 +126,7 @@ class SirModel:
         return simResult
 
     def plot(self,t, simResult):
-        plt.figure(0,figsize=(15,15))
+        plt.figure(figsize=(15,15))
         x, y = (4, 3)
         plt.subplot(x,y,1)
         plt.plot( simResult['Susceptibles'] / simResult['Population'] * 100.0 )
@@ -144,13 +144,17 @@ class SirModel:
         plt.gca().axes.get_xaxis().set_major_formatter(plt.NullFormatter())
         plt.grid(True)
         
-        plt.subplot(x,y,3)
+        ax = plt.subplot(x,y,3)
         plt.step(self.Ro.index,self.Ro.values,where='post')
         plt.title(f'Reproduction number')
         plt.ylabel('Ro [-]')
         plt.xlim(plt.xlim([self.plotStartDate ,self.plotEndDate]))
         plt.gcf().autofmt_xdate()
         plt.grid(True)
+        ax.text(0.95, 0.93, self.Ro.to_string(),
+        verticalalignment='top', horizontalalignment='right',
+        transform=ax.transAxes,
+        color='black', fontsize=10,bbox=dict(boxstyle="square",ec=(1., 1., 1.),fc=(1., 1., 1.), alpha=0.6) )
         
         # plt.subplot(x,y,3)
         # plt.plot( simResult['Susceptibles'].diff() )
@@ -235,7 +239,7 @@ class SirModel:
         plt.subplot(x,y,12)
         plt.plot(simResult['Death'].diff())
         plt.plot(self.FHMData.data.Antal_avlidna)
-        plt.title('Death')
+        plt.title('Deaths')
         #plt.xlabel('Dag')
         plt.ylabel('Daily deaths')
         plt.xlim([self.plotStartDate ,self.plotEndDate])
