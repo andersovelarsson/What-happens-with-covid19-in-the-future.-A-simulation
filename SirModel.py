@@ -20,7 +20,7 @@ class FHMData:
 
 class SirModel:
 #
-#    S - I - R -model
+#    S - I - R - D - model
 #
 #    Susceptibles   S(t)
 #    Infected       I(t)
@@ -77,13 +77,7 @@ class SirModel:
         self.dti       = pd.date_range(dateStart, periods=(self.plotEndDate - self.startDate).days, freq='D')
         self.t         =  (self.dti-self.dti.min()).astype('timedelta64[D]').astype(int)
         self.simResult = self.solve()
-
-
-        #plt.plot(self.k01(self.dti) / k12(self.dti) * self.simResult['Susceptibles'])
-        #plt.show()
         self.plot(self.t, self.simResult)
-
-        #interpolate.interp1d(t,y, bounds_error=False, fill_value=(y[0],y[-1]),kind='previous')
 
 
     @staticmethod
@@ -251,8 +245,10 @@ class SirModel:
         #plt.savefig('covid-19_sim.png', bbox_inches='tight')
         #mpld3.show()
         plt.show()
+    def plot2(self):
+        pass
 
 if __name__ == "__main__":
-    Ro = {'2020-01-01': 2.4 ,'2020-03-16': 1.6 , '2020-04-02': 1.1, '2020-04-24': 1.21, '2020-05-17': 1.26, '2020-08-15':1.4}
-    sirm = SirModel(Ro = Ro, k12=0.3087, k13=0.000506, So = 10E6, dateStart = '2020-02-24', plotDateRange = ['2020-03-01','2021-02-01'])
+    Ro = {'2020-01-01': 2.4 ,'2020-03-16': 1.6 , '2020-04-02': 1.11, '2020-04-24': 1.2, '2020-05-25': 1.35,'2020-08-15':1.35}
+    sirm = SirModel(Ro = Ro, k12=0.3077, k13=0.000506, So = 10E6, dateStart = '2020-02-24', plotDateRange = ['2020-03-01','2020-10-01'])
 
