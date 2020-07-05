@@ -1,11 +1,13 @@
 from scipy.integrate import odeint
 from scipy.signal import StateSpace, lsim
 from scipy import interpolate
+from scipy.optimize import minimize
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import datetime
 import mpld3
+
 
 
 #import casadi  as csdi
@@ -118,6 +120,11 @@ class SirModel:
         simResult['Death']        = pd.Series(s[:,3], self.dti)
         simResult['Population']   = self.No - simResult['Death']
         return simResult
+    
+    def residual(self):
+        measureData = self.FHMData.data.Antal_avlidna.cumsum()
+        simResult   = self.simResult['Death']
+        return  np.linalg.norm(measureData[:-10] - self.simResult['Death'].reindex(index=measureData.index[:-10]))
 
     def plot(self,t, simResult):
         plt.figure(figsize=(15,15))
@@ -249,6 +256,8 @@ class SirModel:
         pass
 
 if __name__ == "__main__":
-    Ro = {'2020-01-01': 2.4 ,'2020-03-16': 1.6 , '2020-04-02': 1.11, '2020-04-24': 1.2, '2020-05-25': 1.35,'2020-08-15':1.35}
-    sirm = SirModel(Ro = Ro, k12=0.3077, k13=0.000506, So = 10E6, dateStart = '2020-02-24', plotDateRange = ['2020-03-01','2020-10-01'])
+    Ro = {'2020-01-01': 2.4 ,'2020-03-16': 1.6 , '2020-04-02': 1.11, '2020-04-24': 1.2, '2020-05-25': 1.35,'2020-06-10':1.4,'2020-08-15':1.4}
+    sirm = SirModel(Ro = Ro, k12=0.3077, k13=0.000506, So = 10E6, dateStart = '2020-02-24', plotDateRange = ['2020-03-01','2021-03-01'])
+    residual  = sirm.residual()
+    print(residual)
 
