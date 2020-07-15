@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import datetime
 import mpld3
+import urllib.request
+import os, time
 
 
 
@@ -16,8 +18,12 @@ import mpld3
 
 class FHMData:
     def __init__(self):
-        # https://www.folkhalsomyndigheten.se/smittskydd-beredskap/utbrott/aktuella-utbrott/covid-19/bekraftade-fall-i-sverige/
         filename = "Folkhalsomyndigheten_Covid19.xlsx"
+        modified = os.path.getmtime(filename)
+        # https://www.folkhalsomyndigheten.se/smittskydd-beredskap/utbrott/aktuella-utbrott/covid-19/bekraftade-fall-i-sverige/
+        if modified < time.time()-60*60*24:
+            urllib.request.urlretrieve ("https://www.arcgis.com/sharing/rest/content/items/b5e7488e117749c19881cce45db13f7e/data", filename)
+
         self.data = pd.read_excel(filename,sheet_name="Antal avlidna per dag", index_col=[0])[:-1]
 
 class SirModel:
@@ -74,7 +80,7 @@ class SirModel:
             t.append(datetime.datetime.strptime(key, '%Y-%m-%d'))
             y.append(Ro[key])
         t.append(self.plotEndDate)
-        y.append(Ro[key])
+        y.append(Ro[list(Ro)[-1]])
         self.Ro = pd.Series(y,t)
         self.dti       = pd.date_range(dateStart, periods=(self.plotEndDate - self.startDate).days, freq='D')
         self.t         =  (self.dti-self.dti.min()).astype('timedelta64[D]').astype(int)
@@ -85,7 +91,7 @@ class SirModel:
     @staticmethod
     def interp(k, t = [0 ,1]):
         return interpolate.interp1d(t,[k,k], bounds_error=False, fill_value=(k,k))
-
+    
     def calcK01(self,Ro):
         if isinstance(Ro,dict):
             t , y = [], []
@@ -256,7 +262,7 @@ class SirModel:
         pass
 
 if __name__ == "__main__":
-    Ro = {'2020-01-01': 2.4 ,'2020-03-16': 1.6 , '2020-04-02': 1.11, '2020-04-24': 1.2, '2020-05-25': 1.35,'2020-06-10':1.4,'2020-08-15':1.4}
+    Ro = {'2020-01-01': 2.4 ,'2020-03-16': 1.6 , '2020-04-02': 1.11, '2020-04-24': 1.2, '2020-05-25': 1.35,'2020-08-15':1.35}
     sirm = SirModel(Ro = Ro, k12=0.3077, k13=0.000506, So = 10E6, dateStart = '2020-02-24', plotDateRange = ['2020-03-01','2021-03-01'])
     residual  = sirm.residual()
     print(residual)
