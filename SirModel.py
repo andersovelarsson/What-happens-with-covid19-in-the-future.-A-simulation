@@ -2,6 +2,7 @@ from scipy.integrate import odeint
 from scipy.signal import StateSpace, lsim
 from scipy import interpolate
 from scipy.optimize import minimize
+
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -84,9 +85,7 @@ class SirModel:
         self.Ro = pd.Series(y,t)
         self.dti       = pd.date_range(dateStart, periods=(self.plotEndDate - self.startDate).days, freq='D')
         self.t         =  (self.dti-self.dti.min()).astype('timedelta64[D]').astype(int)
-        self.simResult = self.solve()
-        self.plot(self.t, self.simResult)
-
+        self.simResult = self.solve(k01 = self.k01, k12 = self.k12, k13 = self.k13)
 
     @staticmethod
     def interp(k, t = [0 ,1]):
@@ -106,7 +105,7 @@ class SirModel:
             return interpolate.interp1d([0 , 1],[k,k], bounds_error=False, fill_value=(k,k))      
 
     @staticmethod
-    def f(x, t, k01, k12, k13):
+    def sirdModel(x, t, k01, k12, k13):
         dx_dt = [0, 0, 0, 0]
         R01 = k01(t) * x[1] * x[0]
         R12 = k12(t) * x[1]
@@ -117,8 +116,8 @@ class SirModel:
         dx_dt[3] =  R13 
         return dx_dt
 
-    def solve(self):
-        s  = odeint(self.f, y0=[self.So, self.Io, 0, 0], t=self.t, args=(self.k01, self.k12, self.k13))
+    def solve(self ,k01 ,k12 ,k13 ):
+        s  = odeint(self.sirdModel, y0=[self.So, self.Io, 0, 0], t=self.t, args=(k01, k12, k13))
         simResult = {}
         simResult['Susceptibles'] = pd.Series(s[:,0], self.dti)
         simResult['Infected']     = pd.Series(s[:,1], self.dti)
@@ -126,13 +125,26 @@ class SirModel:
         simResult['Death']        = pd.Series(s[:,3], self.dti)
         simResult['Population']   = self.No - simResult['Death']
         return simResult
-    
+
+    def autoModelCalibration(self):
+        x = [2.4,1.6,1.11,1.2,1.35]
+        Ro = lambda x:{'2020-01-01': x[0] ,'2020-03-16': x[1] , '2020-04-02': x[2], '2020-04-24': x[3], '2020-05-23': x[4],'2020-08-15':1.35}
+        k12 = self.k12
+        k13 = self.k13 
+        measureData = self.FHMData.data.Antal_avlidna.cumsum()
+        f2 = lambda x: np.linalg.norm(measureData[:-10] - self.solve(k01 = self.calcK01(Ro(x)),k12 = k12, k13 = k13)['Death'].reindex(index=measureData.index[:-10]))
+        res = minimize(f2, x, method='nelder-mead', options={'xatol': 1e-8, 'disp': True})
+        print(res)
+        return res
+
     def residual(self):
         measureData = self.FHMData.data.Antal_avlidna.cumsum()
         simResult   = self.simResult['Death']
         return  np.linalg.norm(measureData[:-10] - self.simResult['Death'].reindex(index=measureData.index[:-10]))
 
-    def plot(self,t, simResult):
+    def plot(self):
+        t = self.t
+        simResult = self.simResult
         plt.figure(figsize=(15,15))
         x, y = (4, 3)
         plt.subplot(x,y,1)
@@ -163,14 +175,6 @@ class SirModel:
         transform=ax.transAxes,
         color='black', fontsize=10,bbox=dict(boxstyle="square",ec=(1., 1., 1.),fc=(1., 1., 1.), alpha=0.6) )
         
-        # plt.subplot(x,y,3)
-        # plt.plot( simResult['Susceptibles'].diff() )
-        # plt.title('Susceptibles')
-        # plt.ylabel('Number per day')
-        # plt.xlim(plt.xlim([self.plotStartDate ,self.plotEndDate]))
-        # plt.gca().axes.get_xaxis().set_major_formatter(plt.NullFormatter())
-        # plt.grid(True)
-
         plt.subplot(x,y,4)
         plt.plot(simResult['Infected'] / simResult['Population'] * 100.0 )
         plt.title('Infected')
@@ -188,13 +192,9 @@ class SirModel:
         plt.ylim((1))
         plt.grid(True)
 
-        # plt.subplot(x,y,6)
-        # plt.plot(simResult['Infected'].diff())
-        # plt.title('Infected')
-        # plt.ylabel('Number per day')
-        # plt.xlim(plt.xlim([self.plotStartDate ,self.plotEndDate]))
-        # plt.gca().axes.get_xaxis().set_major_formatter(plt.NullFormatter())
-        # plt.grid(True)
+        #k01 * So / k12
+        plt.subplot(x,y,6)
+        #plt.plot(self.dti,self.Ro*simResult['Susceptibles'].values/self.So)
 
         plt.subplot(x,y,7)
         plt.plot(simResult['Recovered'] / simResult['Population'] * 100.0)
@@ -212,21 +212,11 @@ class SirModel:
         plt.gca().axes.get_xaxis().set_major_formatter(plt.NullFormatter())
         plt.ylim((1))
         plt.grid(True)
-        
-        # plt.subplot(x,y,9)
-        # plt.plot(simResult['Recovered'].diff())
-        # plt.title('Recovered (Sw: Friska immuna)')
-        # plt.ylabel('Number per day')
-        # plt.xlim(plt.xlim([self.plotStartDate ,self.plotEndDate]))
-        # plt.gca().axes.get_xaxis().set_major_formatter(plt.NullFormatter())
-        # plt.grid(True)
 
-        
         plt.subplot(x,y,10)
         plt.plot(simResult['Death'] / self.So * 1E6)
         plt.plot(self.FHMData.data.Antal_avlidna.cumsum() / self.So * 1E6)
         plt.title('Cumulative deaths per million people')
-        #plt.xlabel('Dag')
         plt.ylabel('Deaths per million')
         plt.legend(['Simulation','FHM Sweden'])
         plt.xlim([self.plotStartDate ,self.plotEndDate])
@@ -247,7 +237,6 @@ class SirModel:
         plt.plot(simResult['Death'].diff())
         plt.plot(self.FHMData.data.Antal_avlidna)
         plt.title('Deaths')
-        #plt.xlabel('Dag')
         plt.ylabel('Daily deaths')
         plt.xlim([self.plotStartDate ,self.plotEndDate])
         plt.grid(True)
@@ -262,8 +251,8 @@ class SirModel:
         pass
 
 if __name__ == "__main__":
-    Ro = {'2020-01-01': 2.4 ,'2020-03-16': 1.6 , '2020-04-02': 1.11, '2020-04-24': 1.2, '2020-05-25': 1.35,'2020-08-15':1.35}
-    sirm = SirModel(Ro = Ro, k12=0.3077, k13=0.000506, So = 10E6, dateStart = '2020-02-24', plotDateRange = ['2020-03-01','2021-03-01'])
-    residual  = sirm.residual()
-    print(residual)
+    Ro = {'2020-01-01': 2.37893716 ,'2020-03-16': 1.62142063 , '2020-04-02': 1.10950424, '2020-04-24': 1.19898184, '2020-05-23': 1.34155081,'2020-08-15':1.35}
+    sirdm = SirModel(Ro = Ro, k12=0.3077, k13=0.000506, So = 10E6, dateStart = '2020-02-24', plotDateRange = ['2020-03-01','2021-03-01'])
+    sirdm.plot()
+    res  = sirdm.autoModelCalibration()
 
