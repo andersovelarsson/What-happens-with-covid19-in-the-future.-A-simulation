@@ -77,12 +77,13 @@ class SirModel:
         #self.Ro        = self.k01(0) * So / k12
         t , y = [], []
         for key in Ro:
-            print(f"Data {key} Ro: {Ro[key]:5.2f}")
+            print(f"Date {key} Ro: {Ro[key]:5.2f}")
             t.append(datetime.datetime.strptime(key, '%Y-%m-%d'))
             y.append(Ro[key])
         t.append(self.plotEndDate)
         y.append(Ro[list(Ro)[-1]])
-        self.Ro = pd.Series(y,t)
+        self.RoText    = pd.Series(y,t).to_string()
+        self.Ro        = self.calcR0(Ro) #pd.Series(y,t)
         self.dti       = pd.date_range(dateStart, periods=(self.plotEndDate - self.startDate).days, freq='D')
         self.t         =  (self.dti-self.dti.min()).astype('timedelta64[D]').astype(int)
         self.simResult = self.solve(k01 = self.k01, k12 = self.k12, k13 = self.k13)
@@ -91,6 +92,19 @@ class SirModel:
     def interp(k, t = [0 ,1]):
         return interpolate.interp1d(t,[k,k], bounds_error=False, fill_value=(k,k))
     
+    def calcR0(self,Ro):
+        if isinstance(Ro,dict):
+            t , y = [], []
+            for key in Ro:
+                date  = datetime.datetime.strptime(key, '%Y-%m-%d')
+                delta = date.date() - self.startDate.date()
+                t.append(delta.days)
+                y.append(Ro[key]) 
+            return interpolate.interp1d(t,y, bounds_error=False, fill_value=(y[0],y[-1]),kind='previous')
+        else:
+            k = Ro
+            return interpolate.interp1d([0 , 1],[k,k], bounds_error=False, fill_value=(k,k))   
+
     def calcK01(self,Ro):
         if isinstance(Ro,dict):
             t , y = [], []
@@ -164,13 +178,14 @@ class SirModel:
         plt.grid(True)
         
         ax = plt.subplot(x,y,3)
-        plt.step(self.Ro.index,self.Ro.values,where='post')
+        #plt.step(self.Ro.index,self.Ro.values,where='post')
+        plt.step(self.dti,self.Ro(self.t),where='post')
         plt.title(f'Reproduction number')
         plt.ylabel('Ro [-]')
         plt.xlim(plt.xlim([self.plotStartDate ,self.plotEndDate]))
         plt.gcf().autofmt_xdate()
         plt.grid(True)
-        ax.text(0.95, 0.93, self.Ro.to_string(),
+        ax.text(0.95, 0.93, self.RoText,
         verticalalignment='top', horizontalalignment='right',
         transform=ax.transAxes,
         color='black', fontsize=10,bbox=dict(boxstyle="square",ec=(1., 1., 1.),fc=(1., 1., 1.), alpha=0.6) )
@@ -194,7 +209,12 @@ class SirModel:
 
         #k01 * So / k12
         plt.subplot(x,y,6)
-        #plt.plot(self.dti,self.Ro*simResult['Susceptibles'].values/self.So)
+        plt.plot(self.dti,self.Ro(self.t)*simResult['Susceptibles'].values/self.So)
+        plt.title(f'Effective reproduction number')
+        plt.ylabel('R [-]')
+        plt.xlim(plt.xlim([self.plotStartDate ,self.plotEndDate]))
+        plt.gcf().autofmt_xdate()
+        plt.grid(True)
 
         plt.subplot(x,y,7)
         plt.plot(simResult['Recovered'] / simResult['Population'] * 100.0)
@@ -251,8 +271,8 @@ class SirModel:
         pass
 
 if __name__ == "__main__":
-    Ro = {'2020-01-01': 2.37893716 ,'2020-03-16': 1.62142063 , '2020-04-02': 1.10950424, '2020-04-24': 1.19898184, '2020-05-23': 1.34155081,'2020-08-15':1.35}
-    sirdm = SirModel(Ro = Ro, k12=0.3077, k13=0.000506, So = 10E6, dateStart = '2020-02-24', plotDateRange = ['2020-03-01','2021-03-01'])
+    Ro = {'2020-01-01': 2.37893716 ,'2020-03-16': 1.62142063 , '2020-04-02': 1.10950424, '2020-04-24': 1.19898184, '2020-05-23': 1.34155081,'2020-07-01':1.2,'2020-08-30':1.5}
+    sirdm = SirModel(Ro = Ro, k12=0.3077, k13=0.000506, So = 10E6, dateStart = '2020-02-24', plotDateRange = ['2020-03-01','2022-03-01'])
     sirdm.plot()
-    res  = sirdm.autoModelCalibration()
+    #res  = sirdm.autoModelCalibration()
 
