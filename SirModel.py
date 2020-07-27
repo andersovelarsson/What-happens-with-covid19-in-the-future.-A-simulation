@@ -64,9 +64,9 @@ class SirModel:
 
     def __init__(self, Ro = 2.5, k12=0.325, k13=0.00011, So = 1E7, dateStart = '2020-01-22', plotDateRange = ['2020-03-01','2020-06-01']):
         self.FHMData       = FHMData()
-        self.startDate     = datetime.datetime.strptime(dateStart, '%Y-%m-%d')  
-        self.plotStartDate = datetime.datetime.strptime(plotDateRange[0], '%Y-%m-%d')
-        self.plotEndDate   = datetime.datetime.strptime(plotDateRange[1], '%Y-%m-%d')
+        self.startDate     = datetime.datetime.fromisoformat(dateStart)  
+        self.plotStartDate = datetime.datetime.fromisoformat(plotDateRange[0])
+        self.plotEndDate   = datetime.datetime.fromisoformat(plotDateRange[1])
         self.So            = So
         self.Io            = 1
         self.No            = self.So + self.Io                     # Initial population
@@ -78,7 +78,7 @@ class SirModel:
         t , y = [], []
         for key in Ro:
             print(f"Date {key} Ro: {Ro[key]:5.2f}")
-            t.append(datetime.datetime.strptime(key, '%Y-%m-%d'))
+            t.append(datetime.datetime.fromisoformat(key))
             y.append(Ro[key])
         t.append(self.plotEndDate)
         y.append(Ro[list(Ro)[-1]])
@@ -96,7 +96,7 @@ class SirModel:
         if isinstance(Ro,dict):
             t , y = [], []
             for key in Ro:
-                date  = datetime.datetime.strptime(key, '%Y-%m-%d')
+                date  = datetime.datetime.fromisoformat(key)
                 delta = date.date() - self.startDate.date()
                 t.append(delta.days)
                 y.append(Ro[key]) 
@@ -109,7 +109,7 @@ class SirModel:
         if isinstance(Ro,dict):
             t , y = [], []
             for key in Ro:
-                date  = datetime.datetime.strptime(key, '%Y-%m-%d')
+                date  = datetime.datetime.fromisoformat(key)
                 delta = date.date() - self.startDate.date()
                 t.append(delta.days)
                 y.append((Ro[key]) / self.So * self.k12(delta.days)) 
@@ -271,7 +271,13 @@ class SirModel:
         pass
 
 if __name__ == "__main__":
-    Ro = {'2020-01-01': 2.37893716 ,'2020-03-16': 1.62142063 , '2020-04-02': 1.10950424, '2020-04-24': 1.19898184, '2020-05-23': 1.34155081,'2020-07-01':1.2,'2020-08-30':1.5}
+    Ro = {'2020-01-01': 2.37893716,
+          '2020-03-16': 1.62142063, 
+          '2020-04-02': 1.10950424, 
+          '2020-04-24': 1.19898184, 
+          '2020-05-23': 1.34155081,
+          '2020-07-01': 1.2,
+          '2020-08-30': 1.5        }
     sirdm = SirModel(Ro = Ro, k12=0.3077, k13=0.000506, So = 10E6, dateStart = '2020-02-24', plotDateRange = ['2020-03-01','2022-03-01'])
     sirdm.plot()
     #res  = sirdm.autoModelCalibration()
