@@ -62,7 +62,7 @@ class SirModel:
 
 #    https://www.medrxiv.org/content/10.1101/2020.04.15.20066050v1.full.pdf
 
-    def __init__(self, Ro = 2.5, k12=0.325, k13=0.00011, So = 1E7, dateStart = '2020-01-22', plotDateRange = ['2020-03-01','2020-06-01']):
+    def __init__(self, Ro = {'2020-02-01':2.5}, k12=0.325, k13=0.00011, So = 1E7, dateStart = '2020-01-22', plotDateRange = ['2020-03-01','2020-06-01']):
         self.FHMData       = FHMData()
         self.startDate     = datetime.datetime.fromisoformat(dateStart)  
         self.plotStartDate = datetime.datetime.fromisoformat(plotDateRange[0])
@@ -70,58 +70,63 @@ class SirModel:
         self.So            = So
         self.Io            = 1
         self.No            = self.So + self.Io                     # Initial population
-        self.k12           = self.interp(k12)
-        self.k01           = self.calcK01(Ro)        
+        self.k12           = self.interp(k12)       
         self.k13           = self.interp(k13)
+        self.dti           = pd.date_range(dateStart, periods=(self.plotEndDate - self.startDate).days, freq='D')
+        self.t             = (self.dti-self.dti.min()).astype('timedelta64[D]').astype(int)
+        self__Ro           = None
+        self.Ro            = Ro
+        
+    @property
+    def Ro(self):
+        return self.__Ro
 
-        #self.Ro        = self.k01(0) * So / k12
-        t , y = [], []
-        for key in Ro:
-            print(f"Date {key} Ro: {Ro[key]:5.2f}")
-            t.append(datetime.datetime.fromisoformat(key))
-            y.append(Ro[key])
-        t.append(self.plotEndDate)
-        y.append(Ro[list(Ro)[-1]])
-        self.RoText    = pd.Series(y,t).to_string()
-        self.Ro        = self.calcR0(Ro) #pd.Series(y,t)
-        self.dti       = pd.date_range(dateStart, periods=(self.plotEndDate - self.startDate).days, freq='D')
-        self.t         =  (self.dti-self.dti.min()).astype('timedelta64[D]').astype(int)
-        self.simResult = self.solve(k01 = self.k01, k12 = self.k12, k13 = self.k13)
+    @Ro.setter
+    def Ro(self, Ro):
+        def calcRo(Ro,startDate):
+            if isinstance(Ro, interpolate.interpolate.interp1d):
+                return Ro
+            if isinstance(Ro,dict):
+                t , y = [], []
+                for key in Ro:
+                    date  = datetime.datetime.fromisoformat(key)
+                    delta = date.date() - startDate.date()
+                    t.append(delta.days)
+                    y.append(Ro[key]) 
+                if len(Ro) == 1:
+                    t.append(100)
+                    y.append(list(Ro.values())[0])
+
+                return interpolate.interp1d(t,y, bounds_error=False, fill_value=(y[0],y[-1]),kind='previous')
+            else:
+                k = Ro
+                return interpolate.interp1d([0 , 1],[k,k], bounds_error=False, fill_value=(k,k))  
+        
+        def RoTabel(Ro):
+            t , y = [], []
+            s = pd.Series(self.__Ro.y,self.__Ro.x)
+            for index, value in s.items():
+                date = (self.startDate + datetime.timedelta(days=index)).strftime('%Y-%m-%d %H:%M:%S')
+                #print(f"Date {date} Ro: {value:5.2f}")
+                t.append(date)
+                y.append(value)
+            t.append(self.plotEndDate)
+            y.append(y[-1])
+            return pd.Series(y,t).to_string()
+
+        self.__Ro = calcRo(Ro,self.startDate)
+        self.RoText = RoTabel(Ro)
+        
+        self.simResult = self.solve(Ro = self.Ro, k12 = self.k12, k13 = self.k13, So = self.So)
 
     @staticmethod
     def interp(k, t = [0 ,1]):
         return interpolate.interp1d(t,[k,k], bounds_error=False, fill_value=(k,k))
-    
-    def calcR0(self,Ro):
-        if isinstance(Ro,dict):
-            t , y = [], []
-            for key in Ro:
-                date  = datetime.datetime.fromisoformat(key)
-                delta = date.date() - self.startDate.date()
-                t.append(delta.days)
-                y.append(Ro[key]) 
-            return interpolate.interp1d(t,y, bounds_error=False, fill_value=(y[0],y[-1]),kind='previous')
-        else:
-            k = Ro
-            return interpolate.interp1d([0 , 1],[k,k], bounds_error=False, fill_value=(k,k))   
-
-    def calcK01(self,Ro):
-        if isinstance(Ro,dict):
-            t , y = [], []
-            for key in Ro:
-                date  = datetime.datetime.fromisoformat(key)
-                delta = date.date() - self.startDate.date()
-                t.append(delta.days)
-                y.append((Ro[key]) / self.So * self.k12(delta.days)) 
-            return interpolate.interp1d(t,y, bounds_error=False, fill_value=(y[0],y[-1]),kind='previous')
-        else:
-            k = Ro / self.So * self.k12(0)
-            return interpolate.interp1d([0 , 1],[k,k], bounds_error=False, fill_value=(k,k))      
 
     @staticmethod
-    def sirdModel(x, t, k01, k12, k13):
+    def sirdModel(x, t, Ro, k12, k13, So):
         dx_dt = [0, 0, 0, 0]
-        R01 = k01(t) * x[1] * x[0]
+        R01 = Ro(t) * k12(t) / So * x[1] * x[0]
         R12 = k12(t) * x[1]
         R13 = k13(t) * x[1] 
         dx_dt[0] = -R01 
@@ -130,8 +135,8 @@ class SirModel:
         dx_dt[3] =  R13 
         return dx_dt
 
-    def solve(self ,k01 ,k12 ,k13 ):
-        s  = odeint(self.sirdModel, y0=[self.So, self.Io, 0, 0], t=self.t, args=(k01, k12, k13))
+    def solve(self ,Ro ,k12 ,k13 ,So):
+        s  = odeint(self.sirdModel, y0=[self.So, self.Io, 0, 0], t=self.t, args=(Ro, k12, k13, So))
         simResult = {}
         simResult['Susceptibles'] = pd.Series(s[:,0], self.dti)
         simResult['Infected']     = pd.Series(s[:,1], self.dti)
@@ -141,20 +146,29 @@ class SirModel:
         return simResult
 
     def autoModelCalibration(self):
-        x = [2.4,1.6,1.11,1.2,1.35]
-        Ro = lambda x:{'2020-01-01': x[0] ,'2020-03-16': x[1] , '2020-04-02': x[2], '2020-04-24': x[3], '2020-05-23': x[4],'2020-08-15':1.35}
-        k12 = self.k12
-        k13 = self.k13 
-        measureData = self.FHMData.data.Antal_avlidna.cumsum()
-        f2 = lambda x: np.linalg.norm(measureData[:-10] - self.solve(k01 = self.calcK01(Ro(x)),k12 = k12, k13 = k13)['Death'].reindex(index=measureData.index[:-10]))
-        res = minimize(f2, x, method='nelder-mead', options={'xatol': 1e-8, 'disp': True})
-        print(res)
-        return res
+        def R(Ro ,x):
+            Ro.y[0] = x[0]
+            Ro.y[1] = x[1]
+            Ro.y[2] = x[2]
+            Ro.y[3] = x[3]
+            Ro.y[4] = x[4]
+            return Ro
+        
+        def residual(x):
+            k12           = self.k12
+            k13           = self.k13 
+            measureData   = self.FHMData.data.Antal_avlidna.cumsum()
+            Ro            = R(self.Ro, x)
+            rmLastDays    = 10
+            measureValues = measureData[:-rmLastDays]
+            simResult     = self.solve(Ro = Ro ,k12 = k12, k13 = k13, So = self.So)
+            simValues     = simResult['Death'].reindex(index=measureData.index[:-rmLastDays])
+            return np.linalg.norm(measureValues - simValues)
 
-    def residual(self):
-        measureData = self.FHMData.data.Antal_avlidna.cumsum()
-        simResult   = self.simResult['Death']
-        return  np.linalg.norm(measureData[:-10] - self.simResult['Death'].reindex(index=measureData.index[:-10]))
+        x = [2.4,1.6,1.11,1.2,1.35]
+        res = minimize(residual, x, method='nelder-mead', options={'xatol': 1e-8, 'disp': True})
+        print(res)
+        return R(self.Ro ,res.x)
 
     def plot(self):
         t = self.t
@@ -266,19 +280,23 @@ class SirModel:
         plt.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1)
         #plt.savefig('covid-19_sim.png', bbox_inches='tight')
         #mpld3.show()
+
+        mng = plt.get_current_fig_manager()
+        mng.full_screen_toggle()
+
         plt.show()
     def plot2(self):
         pass
 
 if __name__ == "__main__":
-    Ro = {'2020-01-01': 2.37893716,
-          '2020-03-16': 1.62142063, 
-          '2020-04-02': 1.10950424, 
-          '2020-04-24': 1.19898184, 
-          '2020-05-23': 1.34155081,
-          '2020-07-01': 1.2,
-          '2020-08-30': 1.5        }
-    sirdm = SirModel(Ro = Ro, k12=0.3077, k13=0.000506, So = 10E6, dateStart = '2020-02-24', plotDateRange = ['2020-03-01','2022-03-01'])
+    sirdm = SirModel(k12=0.3077, k13=0.000506, So = 10E6, dateStart = '2020-02-24', plotDateRange = ['2020-03-01','2022-03-01'])
+    sirdm.Ro = {'2020-01-01': 2.37713217,
+                '2020-03-16': 1.62439360, 
+                '2020-04-02': 1.10813591, 
+                '2020-04-24': 1.20101268, 
+                '2020-05-23': 1.33650182,
+                '2020-08-30': 1.33650182} 
     sirdm.plot()
-    #res  = sirdm.autoModelCalibration()
+    sirdm.Ro  = sirdm.autoModelCalibration()
+    sirdm.plot()
 
