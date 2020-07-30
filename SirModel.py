@@ -62,6 +62,8 @@ class SirModel:
 
 #    https://www.medrxiv.org/content/10.1101/2020.04.15.20066050v1.full.pdf
 
+#    https://web.stanford.edu/~chadj/sird-paper.pdf
+
     def __init__(self, Ro = {'2020-02-01':2.5}, k12=0.325, k13=0.00011, So = 1E7, dateStart = '2020-01-22', plotDateRange = ['2020-03-01','2020-06-01']):
         self.FHMData       = FHMData()
         self.startDate     = datetime.datetime.fromisoformat(dateStart)  
@@ -107,7 +109,6 @@ class SirModel:
             s = pd.Series(self.__Ro.y,self.__Ro.x)
             for index, value in s.items():
                 date = (self.startDate + datetime.timedelta(days=index)).strftime('%Y-%m-%d %H:%M:%S')
-                #print(f"Date {date} Ro: {value:5.2f}")
                 t.append(date)
                 y.append(value)
             t.append(self.plotEndDate)
@@ -152,6 +153,7 @@ class SirModel:
             Ro.y[2] = x[2]
             Ro.y[3] = x[3]
             Ro.y[4] = x[4]
+            Ro.y[5] = x[5]
             return Ro
         
         def residual(x):
@@ -165,7 +167,7 @@ class SirModel:
             simValues     = simResult['Death'].reindex(index=measureData.index[:-rmLastDays])
             return np.linalg.norm(measureValues - simValues)
 
-        x = [2.4,1.6,1.11,1.2,1.35]
+        x = [2.4,1.6,1.11,1.2,1.35,1.35]
         res = minimize(residual, x, method='nelder-mead', options={'xatol': 1e-8, 'disp': True})
         print(res)
         return R(self.Ro ,res.x)
@@ -289,14 +291,15 @@ class SirModel:
         pass
 
 if __name__ == "__main__":
-    sirdm = SirModel(k12=0.3077, k13=0.000506, So = 10E6, dateStart = '2020-02-24', plotDateRange = ['2020-03-01','2022-03-01'])
-    sirdm.Ro = {'2020-01-01': 2.37713217,
-                '2020-03-16': 1.62439360, 
-                '2020-04-02': 1.10813591, 
-                '2020-04-24': 1.20101268, 
-                '2020-05-23': 1.33650182,
-                '2020-08-30': 1.33650182} 
+    sirdm = SirModel(k12=0.3077, k13=0.000506, So = 10E6, dateStart = '2020-02-24', plotDateRange = ['2020-03-01','2021-01-01'])
+    sirdm.Ro = {'2020-01-01': 2.37959296,
+                '2020-03-16': 1.62034351, 
+                '2020-04-02': 1.10996233, 
+                '2020-04-24': 1.19913137, 
+                '2020-05-23': 1.34694451,
+                '2020-06-26': 1.3       ,
+                '2020-08-30': 1.34694451} 
     sirdm.plot()
-    sirdm.Ro  = sirdm.autoModelCalibration()
-    sirdm.plot()
+    #sirdm.Ro  = sirdm.autoModelCalibration()
+    #sirdm.plot()
 
