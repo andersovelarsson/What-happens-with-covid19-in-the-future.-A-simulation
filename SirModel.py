@@ -23,6 +23,7 @@ class FHMData:
         modified = os.path.getmtime(filename)
         # https://www.folkhalsomyndigheten.se/smittskydd-beredskap/utbrott/aktuella-utbrott/covid-19/bekraftade-fall-i-sverige/
         if modified < time.time()-60*60*24:
+            print('Update data file from FHM')
             urllib.request.urlretrieve ("https://www.arcgis.com/sharing/rest/content/items/b5e7488e117749c19881cce45db13f7e/data", filename)
 
         self.data = pd.read_excel(filename,sheet_name="Antal avlidna per dag", index_col=[0])[:-1]
@@ -292,14 +293,14 @@ class SirModel:
 
 if __name__ == "__main__":
     sirdm = SirModel(k12=0.3077, k13=0.000506, So = 10E6, dateStart = '2020-02-24', plotDateRange = ['2020-03-01','2021-01-01'])
-    sirdm.Ro = {'2020-01-01': 2.37959296,
-                '2020-03-16': 1.62034351, 
-                '2020-04-02': 1.10996233, 
-                '2020-04-24': 1.19913137, 
-                '2020-05-23': 1.34694451,
-                '2020-06-26': 1.27      ,
-                '2020-08-30': 1.34694451}
+    sirdm.Ro = {'2020-01-01': 2.37883811,
+                '2020-03-16': 1.6215968, 
+                '2020-04-02': 1.1093679, 
+                '2020-04-24': 1.20002376, 
+                '2020-05-23': 1.34401817,
+                '2020-07-01': 1.23232547,  
+                '2020-07-20': 1.34401817} 
     sirdm.plot()
-    #sirdm.Ro  = sirdm.autoModelCalibration()
+    sirdm.Ro  = sirdm.autoModelCalibration()
     #sirdm.plot()
 
