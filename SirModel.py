@@ -155,6 +155,7 @@ class SirModel:
             Ro.y[3] = x[3]
             Ro.y[4] = x[4]
             Ro.y[5] = x[5]
+            Ro.y[6] = x[6]
             return Ro
         
         def residual(x):
@@ -168,7 +169,7 @@ class SirModel:
             simValues     = simResult['Death'].reindex(index=measureData.index[:-rmLastDays])
             return np.linalg.norm(measureValues - simValues)
 
-        x = [2.4,1.6,1.11,1.2,1.35,1.35]
+        x = [2.4,1.6,1.11,1.2,1.35,1.23,1.26]
         res = minimize(residual, x, method='nelder-mead', options={'xatol': 1e-8, 'disp': True})
         print(res)
         return R(self.Ro ,res.x)
@@ -292,16 +293,17 @@ class SirModel:
         pass
 
 if __name__ == "__main__":
-    sirdm = SirModel(k12=0.3077, k13=0.000506, So = 10E6, dateStart = '2020-02-24', plotDateRange = ['2020-03-01','2021-01-01'])
-    sirdm.Ro = {'2020-01-01': 2.37883811,
-                '2020-03-16': 1.6215968, 
-                '2020-04-02': 1.1093679, 
-                '2020-04-24': 1.20002376, 
-                '2020-05-23': 1.34401817,
-                '2020-07-01': 1.23232547,  
-                '2020-07-20': 1.36401817,
-                '2020-08-20': 1.6000000} 
+    sirdm = SirModel(k12=0.3077, k13=0.000506*2.5, So = 10E6, dateStart = '2020-02-24', plotDateRange = ['2020-03-01','2022-01-01'])
+    sirdm.Ro = {'2020-01-01': 2.23826201,
+                '2020-03-16': 1.61895397, 
+                '2020-04-02': 1.04304145, 
+                '2020-04-24': 1.0269131, 
+                '2020-05-23': 1.06244306,
+                '2020-07-01': 0.89177499,  
+                '2020-07-20': 1.07284479,
+                '2020-08-20': 1.1900000}
+
     sirdm.plot()
     sirdm.Ro  = sirdm.autoModelCalibration()
-    #sirdm.plot()
+    sirdm.plot()
 
