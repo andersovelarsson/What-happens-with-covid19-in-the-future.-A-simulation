@@ -109,11 +109,9 @@ class SirModel:
             t , y = [], []
             s = pd.Series(self.__Ro.y,self.__Ro.x)
             for index, value in s.items():
-                date = (self.startDate + datetime.timedelta(days=index)).strftime('%Y-%m-%d %H:%M:%S')
+                date = (self.startDate + datetime.timedelta(days=index)).strftime('%Y-%m-%d')
                 t.append(date)
                 y.append(value)
-            t.append(self.plotEndDate)
-            y.append(y[-1])
             return pd.Series(y,t).to_string()
 
         self.__Ro = calcRo(Ro,self.startDate)
@@ -184,7 +182,7 @@ class SirModel:
         plt.subplot(x,y,2)
         plt.plot( simResult['Susceptibles'])
         plt.yscale('log')
-        plt.title('Susceptibles')
+        plt.title('Susceptibles (' + datetime.datetime.now().strftime("%Y-%m-%d, %H:%M:%S")+ ')' )
         plt.ylabel('Number of people')
         plt.gca().axes.get_xaxis().set_major_formatter(plt.NullFormatter())
         plt.grid(True)
@@ -197,7 +195,7 @@ class SirModel:
         plt.xlim(plt.xlim([self.plotStartDate ,self.plotEndDate]))
         plt.gcf().autofmt_xdate()
         plt.grid(True)
-        ax.text(0.95, 0.93, self.RoText,
+        ax.text(0.99, 0.96, self.RoText,
         verticalalignment='top', horizontalalignment='right',
         transform=ax.transAxes,
         color='black', fontsize=10,bbox=dict(boxstyle="square",ec=(1., 1., 1.),fc=(1., 1., 1.), alpha=0.6) )
@@ -276,7 +274,11 @@ class SirModel:
         plt.tight_layout(pad=0.2, w_pad=0.1, h_pad=0.1)
         plt.subplots_adjust(wspace=0.25, hspace=0.15)
         plt.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1)
-        #plt.savefig('covid-19_sim.png', bbox_inches='tight')
+
+        filename = "Doc/covid-19_sim.png"
+        modified = os.path.getmtime(filename)
+        if modified < time.time()-60*60*24:
+            plt.savefig(filename, bbox_inches='tight')
         #mpld3.show()
 
         mng = plt.get_current_fig_manager()
@@ -295,7 +297,9 @@ if __name__ == "__main__":
                 '2020-05-23': 1.07028485,
                 '2020-06-20': 0.97462033,  
                 '2020-08-01': 1.02010642,
-                '2020-08-20': 1.21356282}  
+                '2020-08-20': 1.21356282,
+                '2020-10-16': 1.6,
+                '2020-11-10': 1.2}  
     sirdm.printRo()
     sirdm.plot()
     sirdm.Ro  = sirdm.autoModelCalibration()
