@@ -278,6 +278,7 @@ class SirModel:
         filename = "Doc/covid-19_sim.png"
         modified = os.path.getmtime(filename)
         if modified < time.time()-60*60*24:
+            print("Update the file:" + filename)
             plt.savefig(filename, bbox_inches='tight')
         #mpld3.show()
 
