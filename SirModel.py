@@ -277,7 +277,7 @@ class SirModel:
 
         filename = "Doc/covid-19_sim.png"
         modified = os.path.getmtime(filename)
-        if modified < time.time()-60*60*24:
+        if True:    #modified < time.time()-60*60*24:
             print("Update the file:" + filename)
             plt.savefig(filename, bbox_inches='tight')
         #mpld3.show()
@@ -300,7 +300,8 @@ if __name__ == "__main__":
                 '2020-08-01': 1.02010642,
                 '2020-08-20': 1.21356282,
                 '2020-10-16': 1.58,
-                '2020-11-06': 1.35}  
+                '2020-11-06': 1.36,
+                '2020-11-28': 1.25}  
     sirdm.printRo()
     sirdm.plot()
     sirdm.Ro  = sirdm.autoModelCalibration()
