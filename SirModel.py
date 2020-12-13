@@ -301,7 +301,7 @@ if __name__ == "__main__":
                 '2020-08-20': 1.21356282,
                 '2020-10-16': 1.58,
                 '2020-11-06': 1.36,
-                '2020-11-28': 1.25}  
+                '2020-11-26': 1.25}  
     sirdm.printRo()
     sirdm.plot()
     sirdm.Ro  = sirdm.autoModelCalibration()
