@@ -3,6 +3,7 @@ from scipy.signal import StateSpace, lsim
 from scipy import interpolate
 from scipy.optimize import minimize
 
+
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -10,6 +11,9 @@ import datetime
 import mpld3
 import urllib.request
 import os, time
+
+from openpyxl import Workbook
+
 
 
 
@@ -22,11 +26,11 @@ class FHMData:
         filename = "Folkhalsomyndigheten_Covid19.xlsx"
         modified = os.path.getmtime(filename)
         # https://www.folkhalsomyndigheten.se/smittskydd-beredskap/utbrott/aktuella-utbrott/covid-19/bekraftade-fall-i-sverige/
-        if modified < time.time()-60*60*24:
+        if modified < time.time()-60*60*12:
             print('Update data file from FHM')
             urllib.request.urlretrieve ("https://www.arcgis.com/sharing/rest/content/items/b5e7488e117749c19881cce45db13f7e/data", filename)
 
-        self.data = pd.read_excel(filename,sheet_name="Antal avlidna per dag", index_col=[0])[:-1]
+        self.data = pd.read_excel(filename,sheet_name="Antal avlidna per dag", index_col=[0], engine='openpyxl')[:-1]
 
 class SirModel:
 #
@@ -300,8 +304,8 @@ if __name__ == "__main__":
                 '2020-08-01': 1.02010642,
                 '2020-08-20': 1.21356282,
                 '2020-10-16': 1.58,
-                '2020-11-06': 1.36,
-                '2020-11-26': 1.25}  
+                '2020-11-06': 1.375,
+                '2020-11-26': 1.16 }  
     sirdm.printRo()
     sirdm.plot()
     sirdm.Ro  = sirdm.autoModelCalibration()
