@@ -1,2 +1,4 @@
 .vscode/launch.json
 .DS_Store
+__pycache__/SirModel.cpython-37.pyc
+.vscode/settings.json
