@@ -14,6 +14,11 @@ import os, time
 
 from openpyxl import Workbook
 
+from bokeh.io import curdoc
+from bokeh.layouts import column, row
+from bokeh.models import ColumnDataSource, Slider, TextInput
+from bokeh.plotting import figure
+
 
 
 
@@ -30,7 +35,7 @@ class FHMData:
             print('Update data file from FHM')
             urllib.request.urlretrieve ("https://www.arcgis.com/sharing/rest/content/items/b5e7488e117749c19881cce45db13f7e/data", filename)
 
-        self.data = pd.read_excel(filename,sheet_name="Antal avlidna per dag", index_col=[0], engine='openpyxl')[:-1]
+        self.data = pd.read_excel(filename,sheet_name="Antal avlidna per dag", index_col=[0], engine='openpyxl')[:-2]
 
 class SirModel:
 #
@@ -69,7 +74,7 @@ class SirModel:
 
 #    https://web.stanford.edu/~chadj/sird-paper.pdf
 
-    def __init__(self, Ro = {'2020-02-01':2.5}, k12=0.325, k13=0.00011, So = 1E7, dateStart = '2020-01-22', plotDateRange = ['2020-03-01','2020-06-01']):
+    def __init__(self, Ro = {'2020-02-01':2.5}, k12=0.325, k13=0.00011, So = 1E7, dateStart = '2020-01-22', plotDateRange = ['2020-03-01','2020-06-01'], Rv = {'2020-12-27':0.0}):
         self.FHMData       = FHMData()
         self.startDate     = datetime.datetime.fromisoformat(dateStart)  
         self.plotStartDate = datetime.datetime.fromisoformat(plotDateRange[0])
@@ -81,8 +86,10 @@ class SirModel:
         self.k13           = self.interp(k13)
         self.dti           = pd.date_range(dateStart, periods=(self.plotEndDate - self.startDate).days, freq='D')
         self.t             = (self.dti-self.dti.min()).astype('timedelta64[D]').astype(int)
-        self__Ro           = None
+        self.__Ro          = None
         self.Ro            = Ro
+        self.__Rv          = None
+        self.Rv            = Rv
         
     @property
     def Ro(self):
@@ -122,6 +129,25 @@ class SirModel:
         self.RoText = RoTabel(Ro)
         
         self.simResult = self.solve(Ro = self.Ro, k12 = self.k12, k13 = self.k13, So = self.So)
+    
+    @property
+    def Rv(self):
+        return self.__Rv
+
+    @Rv.setter
+    def Rv(self, Rv):
+        t , y = [], []
+        for key in Rv:
+            date  = datetime.datetime.fromisoformat(key)
+            delta = date.date() - self.startDate.date()
+            t.append(delta.days)
+            y.append(Rv[key]) 
+        if len(Rv) == 1:
+            t.append(t[0]+1)
+            y.append(0)
+
+        return interpolate.interp1d(t,y, bounds_error=False, fill_value=(y[0],y[-1]),kind='previous')
+ 
 
     @staticmethod
     def interp(k, t = [0 ,1]):
@@ -133,9 +159,10 @@ class SirModel:
         R01 = Ro(t) * k12(t) / So * x[1] * x[0]
         R12 = k12(t) * x[1]
         R13 = k13(t) * x[1] 
-        dx_dt[0] = -R01 
+        Rv  = 0                                      # Vaccinated [persion/day]
+        dx_dt[0] = -R01 - Rv
         dx_dt[1] =  R01 - R12 - R13 
-        dx_dt[2] =  R12
+        dx_dt[2] =  R12 + Rv
         dx_dt[3] =  R13 
         return dx_dt
 
@@ -305,7 +332,7 @@ if __name__ == "__main__":
                 '2020-08-20': 1.21356282,
                 '2020-10-16': 1.58,
                 '2020-11-06': 1.37,
-                '2020-11-26': 1.23 }  
+                '2020-11-26': 1.25 }  
     sirdm.printRo()
     sirdm.plot()
     sirdm.Ro  = sirdm.autoModelCalibration()
